@@ -21,70 +21,178 @@ jobs:
       uses: actions/checkout@v3
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0  # 获取完整历史记录
         
     - name: Download M3U playlist
       run: |
         echo "正在下载M3U播放列表..."
-        curl -L -o "tv.m3u" "https://iptv.catvod.com/tv.m3u"
+        echo "URL: https://iptv.catvod.com/tv.m3u"
         
-        # 验证文件是否成功下载
-        if [ -s "tv.m3u" ]; then
-          echo "文件下载成功，大小为: $(wc -l < tv.m3u) 行"
-          echo "文件前10行内容:"
-          head -10 tv.m3u
+        # 添加更详细的调试信息和重试机制
+        curl -L -v \
+          --max-time 30 \
+          --retry 3 \
+          --retry-delay 5 \
+          --retry-max-time 60 \
+          -o "tv.m3u" \
+          "https://iptv.catvod.com/tv.m3u" 2>&1 | tee curl_output.log
+        
+        echo "=== curl退出状态码: $? ==="
+        echo "=== 下载的文件信息 ==="
+        ls -la tv.m3u 2>/dev/null || echo "文件不存在"
+        
+        if [ -f "tv.m3u" ]; then
+          echo "=== 文件内容前20行 ==="
+          head -20 tv.m3u
+          echo "=== 文件大小和行数 ==="
+          wc -l tv.m3u
+          echo "字节数: $(wc -c < tv.m3u)"
         else
-          echo "错误：下载的文件为空或不存在"
+          echo "错误：下载的文件不存在"
           exit 1
         fi
         
-    - name: Validate M3U format
+    - name: Check M3U content
       run: |
-        echo "验证M3U文件格式..."
-        if grep -q "^#EXTM3U" tv.m3u; then
-          echo "✓ 文件包含有效的M3U头部"
-        else
-          echo "警告：文件可能不是标准的M3U格式"
+        echo "检查M3U文件内容..."
+        if [ ! -f "tv.m3u" ]; then
+          echo "❌ 错误：tv.m3u 文件不存在"
+          exit 1
         fi
+        
+        # 检查文件是否为空
+        if [ ! -s "tv.m3u" ]; then
+          echo "❌ 错误：tv.m3u 文件为空"
+          echo "文件大小: $(stat -c%s tv.m3u) bytes"
+          exit 1
+        fi
+        
+        # 检查是否包含M3U头部
+        if grep -q "^#EXTM3U" tv.m3u; then
+          echo "✅ 文件包含有效的M3U头部"
+          echo "M3U头部行:"
+          grep "^#EXTM3U" tv.m3u
+        else
+          echo "⚠️  警告：文件不包含标准的M3U头部"
+          echo "文件头部内容:"
+          head -5 tv.m3u
+        fi
+        
+        # 统计信息
+        echo "=== 文件统计 ==="
+        echo "总行数: $(wc -l < tv.m3u)"
+        echo "包含#EXTINF的行数: $(grep -c "^#EXTINF" tv.m3u)"
+        echo "包含http://的行数: $(grep -c "http://" tv.m3u)"
+        echo "包含https://的行数: $(grep -c "https://" tv.m3u)"
         
     - name: Set file permissions
       run: |
         echo "设置文件权限..."
-        chmod 644 tv.m3u  # 设置读写权限：所有者读写，其他用户只读
+        chmod 644 tv.m3u
+        echo "权限设置完成:"
         ls -la tv.m3u
         
-    - name: Commit and push if changed
+    - name: Check for changes
+      id: check_changes
       run: |
         echo "检查文件是否有更改..."
-        if git diff --quiet tv.m3u; then
-          echo "没有检测到更改，跳过提交"
-        else
-          echo "检测到更改，准备提交..."
-          
-          # 配置Git
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 提交更改
-          git add tv.m3u
-          git commit -m "🔄 自动更新播放列表 $(date +'%Y-%m-%d %H:%M:%S')"
-          
-          # 推送更改
-          git push
-          
-          echo "✅ 播放列表已更新并推送到仓库"
+        # 先检查文件是否存在
+        if [ ! -f "tv.m3u" ]; then
+          echo "❌ 错误：tv.m3u 文件不存在"
+          exit 1
         fi
+        
+        # 获取文件哈希进行比较
+        new_hash=$(md5sum tv.m3u | cut -d' ' -f1)
+        echo "新文件MD5: $new_hash"
+        
+        # 检查旧文件是否存在并获取哈希
+        if [ -f "tv.m3u" ]; then
+          old_hash=""
+          if git diff --name-only HEAD~1 HEAD | grep -q "tv.m3u"; then
+            old_hash=$(git show HEAD:tv.m3u 2>/dev/null | md5sum | cut -d' ' -f1) || old_hash=""
+          fi
+          echo "旧文件MD5: $old_hash"
+          
+          if [ "$new_hash" = "$old_hash" ]; then
+            echo "文件未更改"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "文件已更改"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "首次创建文件"
+          echo "changed=true" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Commit and push if changed
+      if: steps.check_changes.outputs.changed == 'true'
+      run: |
+        echo "检测到更改，准备提交..."
+        
+        # 配置Git
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # 添加文件
+        git add tv.m3u
+        
+        # 检查是否有要提交的内容
+        if git diff --cached --quiet; then
+          echo "没有需要提交的更改"
+          exit 0
+        fi
+        
+        # 提交更改
+        git commit -m "🔄 自动更新播放列表 $(date +'%Y-%m-%d %H:%M:%S') UTC"
+        
+        # 推送更改
+        git push
+        
+        echo "✅ 播放列表已更新并推送到仓库"
+        
+    - name: No changes detected
+      if: steps.check_changes.outputs.changed == 'false'
+      run: |
+        echo "ℹ️  没有检测到文件更改，跳过提交"
         
     - name: Create summary
       if: always()
       run: |
         echo "## M3U播放列表更新报告" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- **运行时间:** $(date)" >> $GITHUB_STEP_SUMMARY
-        echo "- **源文件URL:** https://iptv.catvod.com/tv.m3u" >> $GITHUB_STEP_SUMMARY
+        echo "**运行时间:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "**源文件URL:** [https://iptv.catvod.com/tv.m3u](https://iptv.catvod.com/tv.m3u)" >> $GITHUB_STEP_SUMMARY
+        
         if [ -f "tv.m3u" ]; then
-          echo "- **本地文件大小:** $(stat -c%s tv.m3u) bytes" >> $GITHUB_STEP_SUMMARY
-          echo "- **行数:** $(wc -l < tv.m3u)" >> $GITHUB_STEP_SUMMARY
-          echo "- **最后修改时间:** $(stat -c%y tv.m3u)" >> $GITHUB_STEP_SUMMARY
+          file_size=$(stat -c%s tv.m3u)
+          line_count=$(wc -l < tv.m3u)
+          extinf_count=$(grep -c "^#EXTINF" tv.m3u 2>/dev/null || echo "0")
+          
+          echo "**文件状态:** ✅ 下载成功" >> $GITHUB_STEP_SUMMARY
+          echo "**文件大小:** $file_size 字节" >> $GITHUB_STEP_SUMMARY
+          echo "**总行数:** $line_count 行" >> $GITHUB_STEP_SUMMARY
+          echo "**频道数量:** $extinf_count 个" >> $GITHUB_STEP_SUMMARY
+          echo "**最后修改:** $(date -r tv.m3u -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          
+          # 显示文件前几行
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**文件预览:**" >> $GITHUB_STEP_SUMMARY
+          echo '```m3u' >> $GITHUB_STEP_SUMMARY
+          head -10 tv.m3u >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          
         else
-          echo "- **状态:** ❌ 文件下载失败" >> $GITHUB_STEP_SUMMARY
+          echo "**文件状态:** ❌ 下载失败" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # 添加更改状态
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.check_changes.outputs.changed }}" = "true" ]; then
+          echo "**仓库状态:** 🔄 已更新" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.check_changes.outputs.changed }}" = "false" ]; then
+          echo "**仓库状态:** ⏸️  无更改" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "**仓库状态:** ❓ 未知" >> $GITHUB_STEP_SUMMARY
         fi
