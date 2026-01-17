@@ -113,11 +113,3 @@ https://iptv.catvod.com/live.php?id=CHC%E5%BD%B1%E8%BF%B7%E7%94%B5%E5%BD%B1
 https://iptv.catvod.com/live.php?id=CHC%E5%8A%A8%E4%BD%9C%E7%94%B5%E5%BD%B1
 #EXTINF:-1 tvg-logo="https://logo.catvod.com/CHC家庭影院.png" group-title="影视频道",CHC家庭影院
 https://iptv.catvod.com/live.php?id=CHC%E5%AE%B6%E5%BA%AD%E5%BD%B1%E9%99%A2
-#EXTINF:-1 tvg-logo="https://logo.catvod.com/邵氏电影.png" group-title="影视频道",邵氏电影
-https://iptv.catvod.com/live.php?id=%E9%82%B5%E6%B0%8F%E7%94%B5%E5%BD%B1
-#EXTINF:-1 tvg-logo="https://logo.catvod.com/邵氏电影.png" group-title="影视频道",邵氏武侠
-https://iptv.catvod.com/live.php?id=%E9%82%B5%E6%B0%8F%E6%AD%A6%E4%BE%A0
-#EXTINF:-1 tvg-logo="https://logo.catvod.com/邵氏电影.png" group-title="影视频道",邵氏喜剧
-https://iptv.catvod.com/live.php?id=%E9%82%B5%E6%B0%8F%E5%96%9C%E5%89%A7
-#EXTINF:-1 tvg-logo="https://logo.catvod.com/邵氏电影.png" group-title="影视频道",邵氏动作
-https://iptv.catvod.com/live.php?id=%E9%82%B5%E6%B0%8F%E5%8A%A8%E4%BD%9C
