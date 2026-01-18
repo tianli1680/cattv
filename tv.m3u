@@ -1,6 +1,4 @@
 #EXTM3U x-tvg-url="https://epg.catvod.com/epg.xml"
-#EXTINF:-1 group-title="📢 温馨提示",🎁 免费订阅·点击进入
-https://iptv.catvod.com/live.php?id=%F0%9F%8E%81%20%E5%85%8D%E8%B4%B9%E8%AE%A2%E9%98%85%C2%B7%E7%82%B9%E5%87%BB%E8%BF%9B%E5%85%A5
 #EXTINF:-1 tvg-logo="https://logo.catvod.com/CCTV1.png" group-title="央视频道",CCTV1
 https://iptv.catvod.com/live.php?id=CCTV1
 #EXTINF:-1 tvg-logo="https://logo.catvod.com/CCTV2.png" group-title="央视频道",CCTV2
