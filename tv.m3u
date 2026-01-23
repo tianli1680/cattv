@@ -111,8 +111,8 @@ https://iptv.catvod.com/live.php?id=%E9%9D%92%E6%B5%B7%E5%8D%AB%E8%A7%86
 https://iptv.catvod.com/live.php?id=%E8%A5%BF%E8%97%8F%E5%8D%AB%E8%A7%86
 #EXTINF:-1 tvg-logo="https://logo.catvod.com/新疆卫视.png" group-title="卫视频道",新疆卫视
 https://iptv.catvod.com/live.php?id=%E6%96%B0%E7%96%86%E5%8D%AB%E8%A7%86
-#EXTINF:-1 tvg-logo="https://logo.catvod.com/CHC影迷电影.png" group-title="影视频道",CHC 影迷电影
-https://iptv.catvod.com/live.php?id=CHC%20%E5%BD%B1%E8%BF%B7%E7%94%B5%E5%BD%B1
+#EXTINF:-1 tvg-logo="https://logo.catvod.com/CHC影迷电影.png" group-title="影视频道",CHC影迷电影
+https://iptv.catvod.com/live.php?id=CHC%E5%BD%B1%E8%BF%B7%E7%94%B5%E5%BD%B1
 #EXTINF:-1 tvg-logo="https://logo.catvod.com/CHC动作电影.png" group-title="影视频道",CHC动作电影
 https://iptv.catvod.com/live.php?id=CHC%E5%8A%A8%E4%BD%9C%E7%94%B5%E5%BD%B1
 #EXTINF:-1 tvg-logo="https://logo.catvod.com/CHC家庭影院.png" group-title="影视频道",CHC家庭影院
